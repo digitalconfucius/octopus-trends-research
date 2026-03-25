@@ -18,6 +18,8 @@ def _parse_verdict_filter(verdict_param: str) -> list[str] | None:
     """Convert URL param into verdict list."""
     if verdict_param == "high":
         return ["high_signal"]
+    elif verdict_param == "excluded":
+        return ["low_signal", "hype"]
     elif verdict_param == "all":
         return None  # No filter
     else:
