@@ -1,0 +1,10 @@
+__pycache__/
+*.pyc
+.env
+data/dashboard.db
+logs/*.log
+*.egg-info/
+dist/
+build/
+.venv/
+venv/

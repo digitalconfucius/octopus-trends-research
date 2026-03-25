@@ -1,0 +1,29 @@
+{# Card grid partial — HTMX-swappable for filtering/pagination.
+   Expects: items (list of ProcessedItem), view ("dashboard" or "admin"),
+            page (int), has_more (bool) #}
+
+{% if items %}
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4" id="card-grid-inner">
+        {% for item in items %}
+            {% include "components/card.html" %}
+        {% endfor %}
+    </div>
+
+    {# Load more button #}
+    {% if has_more %}
+        <div class="flex justify-center mt-6" id="load-more-container">
+            <button
+                hx-get="{{ request.path }}?{{ query_string }}&page={{ page + 1 }}&partial=1"
+                hx-target="#card-grid-inner"
+                hx-swap="beforeend"
+                hx-select="#card-grid-inner > *"
+                hx-indicator="#load-more-spinner"
+                class="px-4 py-2 text-sm text-gray-600 bg-white border border-gray-300 rounded-lg hover:bg-gray-50">
+                Load more
+                <span id="load-more-spinner" class="htmx-indicator ml-2">...</span>
+            </button>
+        </div>
+    {% endif %}
+{% else %}
+    {% include "components/empty_state.html" %}
+{% endif %}

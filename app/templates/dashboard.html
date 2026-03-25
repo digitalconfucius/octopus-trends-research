@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard — Research Dashboard{% endblock %}
+
+{% block content %}
+    {# Filter bar #}
+    {% include "components/filters.html" %}
+
+    {# Card grid #}
+    <div id="card-grid">
+        {% include "components/card_grid.html" %}
+    </div>
+{% endblock %}

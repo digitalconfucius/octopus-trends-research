@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+
+{% block title %}Admin — Research Dashboard{% endblock %}
+
+{% block content %}
+    {# Add URL form #}
+    <div class="mb-6 p-4 bg-white rounded-lg border border-gray-200">
+        <h2 class="text-sm font-semibold text-gray-700 mb-3">Add Item</h2>
+
+        {# URL submission #}
+        <form hx-post="/api/add-url"
+              hx-target="#add-result"
+              hx-swap="innerHTML"
+              hx-indicator="#add-spinner"
+              class="flex gap-2 mb-2">
+            <input type="url" name="url" placeholder="Paste a URL (article, YouTube, GitHub repo...)"
+                   required
+                   class="flex-1 text-sm border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+            <button type="submit"
+                    class="px-4 py-2 text-sm bg-indigo-600 text-white rounded hover:bg-indigo-700">
+                Add URL
+                <span id="add-spinner" class="htmx-indicator ml-1">...</span>
+            </button>
+        </form>
+
+        {# Manual fallback form (hidden by default) #}
+        <details class="mt-2">
+            <summary class="text-xs text-gray-400 cursor-pointer hover:text-gray-600">
+                Manual entry (if URL fetch fails)
+            </summary>
+            <form hx-post="/api/add-manual"
+                  hx-target="#add-result"
+                  hx-swap="innerHTML"
+                  class="mt-2 flex flex-col gap-2">
+                <input type="text" name="title" placeholder="Title" required
+                       class="text-sm border border-gray-300 rounded px-3 py-2">
+                <textarea name="content" placeholder="Description / key content" rows="3"
+                          class="text-sm border border-gray-300 rounded px-3 py-2"></textarea>
+                <input type="url" name="url" placeholder="URL (optional)"
+                       class="text-sm border border-gray-300 rounded px-3 py-2">
+                <button type="submit"
+                        class="self-start px-4 py-2 text-sm bg-gray-700 text-white rounded hover:bg-gray-800">
+                    Add Manually
+                </button>
+            </form>
+        </details>
+
+        {# Result message #}
+        <div id="add-result" class="mt-2"></div>
+    </div>
+
+    {# All items queue #}
+    <div id="card-grid">
+        {% set view = 'admin' %}
+        {% include "components/card_grid.html" %}
+    </div>
+{% endblock %}

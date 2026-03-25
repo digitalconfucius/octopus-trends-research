@@ -1,0 +1,138 @@
+{# Single topic card — HTMX-swappable partial.
+   Expects: item (ProcessedItem), view ("dashboard" or "admin") #}
+
+<div id="card-{{ item.id }}" class="card-dismiss bg-white rounded-lg border border-gray-200 p-5 flex flex-col gap-3 hover:shadow-sm transition-shadow">
+    {# Top row: source badge + verdict indicator #}
+    <div class="flex items-center justify-between">
+        <div class="flex items-center gap-2">
+            {# Source badge #}
+            {% if 'hackernews' in item.source_name %}
+                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-orange-100 text-orange-700">HN</span>
+            {% elif 'reddit' in item.source_name %}
+                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-700">Reddit</span>
+            {% elif 'github' in item.source_name %}
+                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-700 text-white">GitHub</span>
+            {% elif item.source_type == 'manual' %}
+                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-700">Manual</span>
+            {% elif 'techcrunch' in item.source_name %}
+                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-700">TC</span>
+            {% elif 'ars_technica' in item.source_name %}
+                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-700">Ars</span>
+            {% else %}
+                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-600">{{ item.source_name }}</span>
+            {% endif %}
+
+            {# Verdict dot #}
+            {% if item.verdict == 'high_signal' %}
+                <span class="w-2 h-2 rounded-full bg-emerald-500" title="High signal"></span>
+            {% elif item.verdict == 'medium_signal' %}
+                <span class="w-2 h-2 rounded-full bg-yellow-400" title="Medium signal"></span>
+            {% elif item.verdict == 'low_signal' %}
+                <span class="w-2 h-2 rounded-full bg-gray-300" title="Low signal"></span>
+            {% elif item.verdict == 'hype' %}
+                <span class="w-2 h-2 rounded-full bg-red-400" title="Hype"></span>
+            {% endif %}
+        </div>
+
+        {# Scores (subtle) #}
+        <div class="flex items-center gap-2 text-xs text-gray-400">
+            <span title="Relevance">R:{{ item.relevance_score }}</span>
+            <span title="Hype">H:{{ item.hype_score }}</span>
+        </div>
+    </div>
+
+    {# Title #}
+    <h3 class="text-sm font-semibold text-gray-900 leading-snug">
+        {% if item.url %}
+            <a href="{{ item.url }}" target="_blank" rel="noopener" class="hover:text-indigo-600 hover:underline">
+                {{ item.title }}
+            </a>
+        {% else %}
+            {{ item.title }}
+        {% endif %}
+    </h3>
+
+    {# Summary #}
+    <p class="text-sm text-gray-600 leading-relaxed">{{ item.summary }}</p>
+
+    {# Key stats — prominent if present #}
+    {% if item.key_stats %}
+        <div class="bg-amber-50 border border-amber-100 rounded px-3 py-2">
+            {% for stat in item.key_stats %}
+                <p class="text-xs font-medium text-amber-800">{{ stat }}</p>
+            {% endfor %}
+        </div>
+    {% endif %}
+
+    {# Teaching angle — subtle hint #}
+    {% if item.teaching_angle %}
+        <p class="text-xs text-gray-400 italic">{{ item.teaching_angle }}</p>
+    {% endif %}
+
+    {# Bottom row: tags + actions #}
+    <div class="flex items-center justify-between mt-auto pt-2 border-t border-gray-100">
+        {# Tags #}
+        <div class="flex flex-wrap gap-1">
+            {% for tag in item.tags %}
+                <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-gray-100 text-gray-500">
+                    {{ tag }}
+                </span>
+            {% endfor %}
+        </div>
+
+        {# Actions #}
+        <div class="flex items-center gap-1">
+            {% if view == 'dashboard' %}
+                {# Bookmark toggle #}
+                {% if item.is_bookmarked %}
+                    <button
+                        hx-delete="/api/bookmark/{{ item.id }}"
+                        hx-target="#card-{{ item.id }}"
+                        hx-swap="outerHTML"
+                        class="p-1 text-indigo-500 hover:text-indigo-700"
+                        title="Remove bookmark">
+                        <svg class="w-4 h-4 fill-current" viewBox="0 0 20 20"><path d="M5 2a1 1 0 011-1h8a1 1 0 011 1v16l-5-3.5L5 18V2z"/></svg>
+                    </button>
+                {% else %}
+                    <button
+                        hx-post="/api/bookmark/{{ item.id }}"
+                        hx-target="#card-{{ item.id }}"
+                        hx-swap="outerHTML"
+                        class="p-1 text-gray-300 hover:text-indigo-500"
+                        title="Bookmark">
+                        <svg class="w-4 h-4 fill-current" viewBox="0 0 20 20"><path d="M5 2a1 1 0 011-1h8a1 1 0 011 1v16l-5-3.5L5 18V2z"/></svg>
+                    </button>
+                {% endif %}
+
+            {% elif view == 'admin' %}
+                {# Promote #}
+                {% if item.is_promoted %}
+                    <span class="text-xs text-emerald-600 font-medium px-2">Promoted</span>
+                {% else %}
+                    <button
+                        hx-post="/api/promote/{{ item.id }}"
+                        hx-target="#card-{{ item.id }}"
+                        hx-swap="outerHTML"
+                        class="px-2 py-1 text-xs text-emerald-600 hover:bg-emerald-50 rounded"
+                        title="Promote to dashboard">
+                        Promote
+                    </button>
+                {% endif %}
+
+                {# Dismiss #}
+                {% if item.is_dismissed %}
+                    <span class="text-xs text-red-400 font-medium px-2">Dismissed</span>
+                {% else %}
+                    <button
+                        hx-post="/api/dismiss/{{ item.id }}"
+                        hx-target="#card-{{ item.id }}"
+                        hx-swap="outerHTML swap:300ms"
+                        class="px-2 py-1 text-xs text-red-500 hover:bg-red-50 rounded"
+                        title="Dismiss">
+                        Dismiss
+                    </button>
+                {% endif %}
+            {% endif %}
+        </div>
+    </div>
+</div>

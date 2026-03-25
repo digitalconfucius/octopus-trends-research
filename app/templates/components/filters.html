@@ -1,0 +1,60 @@
+{# Filter bar for dashboard view.
+   Expects: current_verdict, current_tag, current_source, current_date_from, current_date_to,
+            all_tags (list of str), all_sources (list of str), bookmarked_only (bool) #}
+
+<div class="flex flex-wrap items-center gap-3 mb-6 p-4 bg-white rounded-lg border border-gray-200">
+    <form id="filter-form"
+          hx-get="/"
+          hx-target="#card-grid"
+          hx-select="#card-grid"
+          hx-swap="outerHTML"
+          hx-push-url="true"
+          class="flex flex-wrap items-center gap-3 w-full">
+
+        {# Verdict filter #}
+        <select name="verdict" class="text-sm border border-gray-300 rounded px-2 py-1.5 bg-white text-gray-700">
+            <option value="high_medium" {{ 'selected' if current_verdict == 'high_medium' }}>High + Medium Signal</option>
+            <option value="high" {{ 'selected' if current_verdict == 'high' }}>High Signal Only</option>
+            <option value="all" {{ 'selected' if current_verdict == 'all' }}>All</option>
+        </select>
+
+        {# Tag filter #}
+        <select name="tag" class="text-sm border border-gray-300 rounded px-2 py-1.5 bg-white text-gray-700">
+            <option value="">All Tags</option>
+            {% for tag in all_tags %}
+                <option value="{{ tag }}" {{ 'selected' if current_tag == tag }}>{{ tag }}</option>
+            {% endfor %}
+        </select>
+
+        {# Source filter #}
+        <select name="source" class="text-sm border border-gray-300 rounded px-2 py-1.5 bg-white text-gray-700">
+            <option value="">All Sources</option>
+            {% for source in all_sources %}
+                <option value="{{ source }}" {{ 'selected' if current_source == source }}>{{ source }}</option>
+            {% endfor %}
+        </select>
+
+        {# Date range #}
+        <div class="flex items-center gap-1">
+            <input type="date" name="date_from" value="{{ current_date_from or '' }}"
+                   class="text-sm border border-gray-300 rounded px-2 py-1.5 text-gray-700"
+                   placeholder="From">
+            <span class="text-gray-400 text-xs">to</span>
+            <input type="date" name="date_to" value="{{ current_date_to or '' }}"
+                   class="text-sm border border-gray-300 rounded px-2 py-1.5 text-gray-700"
+                   placeholder="To">
+        </div>
+
+        {# Apply #}
+        <button type="submit"
+                class="px-3 py-1.5 text-sm bg-indigo-600 text-white rounded hover:bg-indigo-700">
+            Filter
+        </button>
+
+        {# Bookmarked toggle #}
+        <a href="{{ '/dashboard/bookmarks' if not bookmarked_only else '/' }}"
+           class="ml-auto text-sm {{ 'text-indigo-600 font-medium' if bookmarked_only else 'text-gray-500 hover:text-gray-700' }}">
+            {{ 'Showing Bookmarks' if bookmarked_only else 'Bookmarks' }}
+        </a>
+    </form>
+</div>

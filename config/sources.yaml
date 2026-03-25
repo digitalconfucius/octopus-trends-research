@@ -1,0 +1,48 @@
+sources:
+  - name: hackernews_top
+    type: api
+    url: https://hacker-news.firebaseio.com/v0/topstories.json
+    fetch_limit: 30
+    schedule: daily
+
+  - name: hackernews_best
+    type: api
+    url: https://hacker-news.firebaseio.com/v0/beststories.json
+    fetch_limit: 20
+    schedule: daily
+
+  - name: reddit_machinelearning
+    type: rss
+    url: https://www.reddit.com/r/MachineLearning/top/.json?t=day
+    fetch_limit: 15
+    schedule: daily
+
+  - name: reddit_localllama
+    type: rss
+    url: https://www.reddit.com/r/LocalLLaMA/top/.json?t=day
+    fetch_limit: 15
+    schedule: daily
+
+  - name: reddit_artificial
+    type: rss
+    url: https://www.reddit.com/r/artificial/top/.json?t=day
+    fetch_limit: 10
+    schedule: daily
+
+  - name: github_trending
+    type: api
+    url: https://api.github.com/search/repositories?q=created:>{yesterday}&sort=stars&order=desc
+    fetch_limit: 15
+    schedule: daily
+
+  - name: techcrunch_ai
+    type: rss
+    url: https://techcrunch.com/category/artificial-intelligence/feed/
+    fetch_limit: 10
+    schedule: daily
+
+  - name: ars_technica_ai
+    type: rss
+    url: https://feeds.arstechnica.com/arstechnica/technology-lab
+    fetch_limit: 10
+    schedule: daily
