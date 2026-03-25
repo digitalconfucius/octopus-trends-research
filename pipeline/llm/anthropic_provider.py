@@ -5,7 +5,7 @@ import os
 import anthropic
 
 from pipeline.llm.base import LLMProvider, ProcessedResult
-from pipeline.llm.prompts import TASTE_FILTER_PROMPT
+from pipeline.llm.prompts import TASTE_FILTER_PROMPT, BATCH_TASTE_FILTER_PROMPT
 
 logger = logging.getLogger(__name__)
 
@@ -18,38 +18,77 @@ class AnthropicProvider(LLMProvider):
     def process_item(self, title: str, content: str, source: str, url: str) -> ProcessedResult:
         prompt = TASTE_FILTER_PROMPT.format(
             title=title,
-            content=content[:8000],  # Truncate very long content
+            content=content[:4000],
             source=source,
             url=url,
         )
 
         response = self.client.messages.create(
             model=self.model,
-            max_tokens=1024,
+            max_tokens=2048,
             messages=[{"role": "user", "content": prompt}],
         )
 
         raw_text = response.content[0].text.strip()
-        return self._parse_response(raw_text)
+        return _parse_single(raw_text)
 
-    def _parse_response(self, raw_text: str) -> ProcessedResult:
-        """Parse JSON response into ProcessedResult. Raises on malformed JSON."""
-        # Strip markdown fences if the model includes them despite instructions
-        if raw_text.startswith("```"):
-            raw_text = raw_text.split("\n", 1)[1]
-            if raw_text.endswith("```"):
-                raw_text = raw_text[:-3]
-            raw_text = raw_text.strip()
+    def process_batch(self, items: list[dict]) -> list[dict]:
+        compact = []
+        for item in items:
+            compact.append({
+                "id": item["id"],
+                "title": item["title"],
+                "source": item["source"],
+                "url": item["url"],
+                "content": (item.get("content") or "")[:1500],
+            })
 
-        data = json.loads(raw_text)
-
-        return ProcessedResult(
-            summary=data["summary"],
-            relevance_score=int(data["relevance_score"]),
-            hype_score=int(data["hype_score"]),
-            teaching_angle=data.get("teaching_angle"),
-            key_stats=data.get("key_stats", []),
-            tags=data.get("tags", []),
-            verdict=data["verdict"],
-            reasoning=data["reasoning"],
+        prompt = BATCH_TASTE_FILTER_PROMPT.format(
+            items_json=json.dumps(compact, ensure_ascii=False)
         )
+
+        response = self.client.messages.create(
+            model=self.model,
+            max_tokens=8192,
+            messages=[{"role": "user", "content": prompt}],
+        )
+
+        raw_text = response.content[0].text.strip()
+        return _parse_batch(raw_text)
+
+
+def _parse_single(raw_text: str) -> ProcessedResult:
+    raw_text = _strip_fences(raw_text)
+    data = json.loads(raw_text)
+    return ProcessedResult(
+        summary=data["summary"],
+        relevance_score=int(data["relevance_score"]),
+        hype_score=int(data["hype_score"]),
+        teaching_angle=data.get("teaching_angle"),
+        key_stats=data.get("key_stats", []),
+        tags=data.get("tags", []),
+        verdict=data["verdict"],
+        reasoning=data["reasoning"],
+    )
+
+
+def _parse_batch(raw_text: str) -> list[dict]:
+    raw_text = _strip_fences(raw_text)
+    data = json.loads(raw_text)
+    if isinstance(data, dict):
+        for key in ("results", "items", "evaluations"):
+            if key in data and isinstance(data[key], list):
+                data = data[key]
+                break
+    if not isinstance(data, list):
+        raise ValueError(f"Expected JSON array, got {type(data).__name__}")
+    return data
+
+
+def _strip_fences(text: str) -> str:
+    if text.startswith("```"):
+        text = text.split("\n", 1)[1]
+        if text.endswith("```"):
+            text = text[:-3]
+        text = text.strip()
+    return text

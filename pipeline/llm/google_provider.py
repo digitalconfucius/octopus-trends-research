@@ -6,7 +6,7 @@ from google import genai
 from google.genai import types
 
 from pipeline.llm.base import LLMProvider, ProcessedResult
-from pipeline.llm.prompts import TASTE_FILTER_PROMPT
+from pipeline.llm.prompts import TASTE_FILTER_PROMPT, BATCH_TASTE_FILTER_PROMPT
 
 logger = logging.getLogger(__name__)
 
@@ -19,7 +19,7 @@ class GoogleProvider(LLMProvider):
     def process_item(self, title: str, content: str, source: str, url: str) -> ProcessedResult:
         prompt = TASTE_FILTER_PROMPT.format(
             title=title,
-            content=content[:8000],
+            content=content[:4000],
             source=source,
             url=url,
         )
@@ -29,30 +29,77 @@ class GoogleProvider(LLMProvider):
             contents=prompt,
             config=types.GenerateContentConfig(
                 response_mime_type="application/json",
-                max_output_tokens=1024,
+                max_output_tokens=2048,
             ),
         )
 
         raw_text = response.text.strip()
-        return self._parse_response(raw_text)
+        return _parse_single(raw_text)
 
-    def _parse_response(self, raw_text: str) -> ProcessedResult:
-        """Parse JSON response into ProcessedResult. Raises on malformed JSON."""
-        if raw_text.startswith("```"):
-            raw_text = raw_text.split("\n", 1)[1]
-            if raw_text.endswith("```"):
-                raw_text = raw_text[:-3]
-            raw_text = raw_text.strip()
+    def process_batch(self, items: list[dict]) -> list[dict]:
+        # Truncate content per item to keep total prompt manageable
+        compact = []
+        for item in items:
+            compact.append({
+                "id": item["id"],
+                "title": item["title"],
+                "source": item["source"],
+                "url": item["url"],
+                "content": (item.get("content") or "")[:1500],
+            })
 
-        data = json.loads(raw_text)
-
-        return ProcessedResult(
-            summary=data["summary"],
-            relevance_score=int(data["relevance_score"]),
-            hype_score=int(data["hype_score"]),
-            teaching_angle=data.get("teaching_angle"),
-            key_stats=data.get("key_stats", []),
-            tags=data.get("tags", []),
-            verdict=data["verdict"],
-            reasoning=data["reasoning"],
+        prompt = BATCH_TASTE_FILTER_PROMPT.format(
+            items_json=json.dumps(compact, ensure_ascii=False)
         )
+
+        response = self.client.models.generate_content(
+            model=self.model,
+            contents=prompt,
+            config=types.GenerateContentConfig(
+                response_mime_type="application/json",
+                max_output_tokens=8192,
+            ),
+        )
+
+        raw_text = response.text.strip()
+        return _parse_batch(raw_text)
+
+
+def _parse_single(raw_text: str) -> ProcessedResult:
+    """Parse single-item JSON response into ProcessedResult."""
+    raw_text = _strip_fences(raw_text)
+    data = json.loads(raw_text)
+    return ProcessedResult(
+        summary=data["summary"],
+        relevance_score=int(data["relevance_score"]),
+        hype_score=int(data["hype_score"]),
+        teaching_angle=data.get("teaching_angle"),
+        key_stats=data.get("key_stats", []),
+        tags=data.get("tags", []),
+        verdict=data["verdict"],
+        reasoning=data["reasoning"],
+    )
+
+
+def _parse_batch(raw_text: str) -> list[dict]:
+    """Parse batch JSON response into list of result dicts."""
+    raw_text = _strip_fences(raw_text)
+    data = json.loads(raw_text)
+    # Handle case where LLM wraps array in an object
+    if isinstance(data, dict):
+        for key in ("results", "items", "evaluations"):
+            if key in data and isinstance(data[key], list):
+                data = data[key]
+                break
+    if not isinstance(data, list):
+        raise ValueError(f"Expected JSON array, got {type(data).__name__}")
+    return data
+
+
+def _strip_fences(text: str) -> str:
+    if text.startswith("```"):
+        text = text.split("\n", 1)[1]
+        if text.endswith("```"):
+            text = text[:-3]
+        text = text.strip()
+    return text

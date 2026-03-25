@@ -79,7 +79,7 @@ The dashboard will be available at `http://localhost:5000`.
 │   ├── sources.py              # Source config loader
 │   └── llm/
 │       ├── base.py             # Abstract LLM interface + ProcessedResult
-│       ├── google_provider.py    # Default — Gemini 2.5 Flash
+│       ├── google_provider.py    # Default — Gemini 3 Flash
 │       ├── anthropic_provider.py
 │       ├── openai_provider.py
 │       └── prompts.py          # THE TASTE FILTER — most important file
@@ -178,8 +178,13 @@ Run the pipeline daily via cron (use the venv's Python):
 Or run manually (with the venv activated):
 
 ```bash
-python scripts/run_pipeline.py
+python scripts/run_pipeline.py                # Full run (default 50 items)
+python scripts/run_pipeline.py --max-items 10  # Quick test run
+python scripts/run_pipeline.py --skip-ingest   # Re-process only, no fetching
+python scripts/run_pipeline.py --batch-size 20 # Bigger LLM batches
 ```
+
+Items are batched into a single LLM call (default 15 per batch) instead of one call per item — much faster and cheaper.
 
 ## Configuration
 
@@ -194,6 +199,8 @@ All config via environment variables (`.env` file in development):
 | `ANTHROPIC_API_KEY` | — | Required if provider is anthropic |
 | `OPENAI_API_KEY` | — | Required if provider is openai |
 | `DATABASE_PATH` | `data/dashboard.db` | SQLite database file path |
+| `PIPELINE_MAX_ITEMS` | `50` | Max items to process per pipeline run |
+| `PIPELINE_BATCH_SIZE` | `15` | Items per LLM batch call |
 | `LOG_LEVEL` | `INFO` | Python logging level |
 
 ## Database Schema

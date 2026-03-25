@@ -21,3 +21,16 @@ class LLMProvider(ABC):
     def process_item(self, title: str, content: str, source: str, url: str) -> ProcessedResult:
         """Process a single raw item through the taste filter."""
         pass
+
+    @abstractmethod
+    def process_batch(self, items: list[dict]) -> list[dict]:
+        """Process a batch of items in a single LLM call.
+
+        Args:
+            items: List of dicts with keys: id, title, source, url, content
+
+        Returns:
+            List of dicts with keys: id, summary, relevance_score, hype_score,
+            teaching_angle, key_stats, tags, verdict, reasoning
+        """
+        pass
