@@ -11,19 +11,22 @@ import time
 from pipeline.llm.base import LLMProvider, ProcessedResult
 from pipeline.llm.anthropic_provider import AnthropicProvider
 from pipeline.llm.openai_provider import OpenAIProvider
+from pipeline.llm.google_provider import GoogleProvider
 
 logger = logging.getLogger(__name__)
 
 
 def get_llm_provider() -> LLMProvider:
     """Create the configured LLM provider based on environment variables."""
-    provider = os.environ.get("LLM_PROVIDER", "anthropic").lower()
-    if provider == "anthropic":
+    provider = os.environ.get("LLM_PROVIDER", "google").lower()
+    if provider == "google":
+        return GoogleProvider()
+    elif provider == "anthropic":
         return AnthropicProvider()
     elif provider == "openai":
         return OpenAIProvider()
     else:
-        raise ValueError(f"Unknown LLM_PROVIDER: {provider}. Use 'anthropic' or 'openai'.")
+        raise ValueError(f"Unknown LLM_PROVIDER: {provider}. Use 'google', 'anthropic', or 'openai'.")
 
 
 def run_process(db: sqlite3.Connection, llm: LLMProvider | None = None):

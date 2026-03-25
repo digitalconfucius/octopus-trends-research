@@ -9,7 +9,7 @@ An internal research dashboard for surfacing high-signal AI/tech trends and filt
 - **Backend**: Flask (Python 3.11+) with Jinja2 templates
 - **Frontend**: HTMX + Tailwind CSS (both via CDN)
 - **Database**: SQLite3 (single file at `data/dashboard.db`)
-- **LLM Processing**: Model-agnostic (Anthropic/OpenAI providers)
+- **LLM Processing**: Model-agnostic (Google Gemini/Anthropic/OpenAI providers)
 - **Scheduling**: System cron calling `scripts/run_pipeline.py`
 
 ## Quick Start
@@ -17,7 +17,7 @@ An internal research dashboard for surfacing high-signal AI/tech trends and filt
 ### Prerequisites
 
 - Python 3.11+ (required — the project uses modern Python features)
-- An API key for at least one LLM provider (Anthropic or OpenAI)
+- An API key for at least one LLM provider (Google AI, Anthropic, or OpenAI)
 
 ### Setup
 
@@ -32,11 +32,12 @@ pip install -r requirements.txt
 
 # 3. Set up environment variables
 cp .env.example .env
-# Edit .env — at minimum, add your LLM API key:
+# Edit .env — at minimum, add your Google API key:
+#   GOOGLE_API_KEY=your-key-here
+#
+# Or switch to another provider:
+#   LLM_PROVIDER=anthropic
 #   ANTHROPIC_API_KEY=sk-ant-...
-#   or
-#   LLM_PROVIDER=openai
-#   OPENAI_API_KEY=sk-...
 
 # 4. Run the ingestion + processing pipeline
 python scripts/run_pipeline.py
@@ -78,6 +79,7 @@ The dashboard will be available at `http://localhost:5000`.
 │   ├── sources.py              # Source config loader
 │   └── llm/
 │       ├── base.py             # Abstract LLM interface + ProcessedResult
+│       ├── google_provider.py    # Default — Gemini 2.5 Flash
 │       ├── anthropic_provider.py
 │       ├── openai_provider.py
 │       └── prompts.py          # THE TASTE FILTER — most important file
@@ -135,11 +137,20 @@ The ops person can also submit individual URLs (articles, YouTube videos, GitHub
 The system is not coupled to any single LLM provider. Set via environment variables:
 
 ```bash
-LLM_PROVIDER=anthropic   # or "openai"
-LLM_MODEL=claude-sonnet-4-20250514  # or any model string
+# Default — Google Gemini (cheapest, fastest for this workload)
+LLM_PROVIDER=google
+LLM_MODEL=gemini-3-flash-preview
+
+# Or Anthropic
+LLM_PROVIDER=anthropic
+LLM_MODEL=claude-sonnet-4-20250514
+
+# Or OpenAI
+LLM_PROVIDER=openai
+LLM_MODEL=gpt-4o
 ```
 
-Both providers request structured JSON output and parse it into the same `ProcessedResult` dataclass. Malformed LLM responses are logged and skipped.
+All three providers request structured JSON output and parse it into the same `ProcessedResult` dataclass. Malformed LLM responses are logged and skipped.
 
 ## Users & Views
 
@@ -177,8 +188,9 @@ All config via environment variables (`.env` file in development):
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `FLASK_SECRET_KEY` | `dev-secret-key...` | Flask session secret |
-| `LLM_PROVIDER` | `anthropic` | `anthropic` or `openai` |
-| `LLM_MODEL` | `claude-sonnet-4-20250514` | Model identifier |
+| `LLM_PROVIDER` | `google` | `google`, `anthropic`, or `openai` |
+| `LLM_MODEL` | `gemini-3-flash-preview` | Model identifier |
+| `GOOGLE_API_KEY` | — | Required if provider is google |
 | `ANTHROPIC_API_KEY` | — | Required if provider is anthropic |
 | `OPENAI_API_KEY` | — | Required if provider is openai |
 | `DATABASE_PATH` | `data/dashboard.db` | SQLite database file path |
