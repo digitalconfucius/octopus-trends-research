@@ -14,22 +14,40 @@ An internal research dashboard for surfacing high-signal AI/tech trends and filt
 
 ## Quick Start
 
+### Prerequisites
+
+- Python 3.11+ (required — the project uses modern Python features)
+- An API key for at least one LLM provider (Anthropic or OpenAI)
+
+### Setup
+
 ```bash
-# 1. Clone and install dependencies
+# 1. Create and activate a virtual environment
+python3 -m venv .venv
+source .venv/bin/activate    # macOS / Linux
+# .venv\Scripts\activate     # Windows
+
+# 2. Install dependencies
 pip install -r requirements.txt
 
-# 2. Set up environment
+# 3. Set up environment variables
 cp .env.example .env
-# Edit .env with your API keys and preferences
+# Edit .env — at minimum, add your LLM API key:
+#   ANTHROPIC_API_KEY=sk-ant-...
+#   or
+#   LLM_PROVIDER=openai
+#   OPENAI_API_KEY=sk-...
 
-# 3. Run the ingestion + processing pipeline
+# 4. Run the ingestion + processing pipeline
 python scripts/run_pipeline.py
 
-# 4. Start the web server
+# 5. Start the web server
 flask --app app run --debug
 ```
 
 The dashboard will be available at `http://localhost:5000`.
+
+> **Note:** Always activate the virtual environment (`source .venv/bin/activate`) before running any commands. If you open a new terminal, you'll need to activate it again.
 
 ## Project Structure
 
@@ -140,13 +158,13 @@ Both providers request structured JSON output and parse it into the same `Proces
 
 ## Pipeline Scheduling
 
-Run the pipeline daily via cron:
+Run the pipeline daily via cron (use the venv's Python):
 
 ```cron
-0 6 * * * cd /path/to/project && python scripts/run_pipeline.py >> logs/pipeline.log 2>&1
+0 6 * * * cd /path/to/project && .venv/bin/python scripts/run_pipeline.py >> logs/pipeline.log 2>&1
 ```
 
-Or run manually:
+Or run manually (with the venv activated):
 
 ```bash
 python scripts/run_pipeline.py
